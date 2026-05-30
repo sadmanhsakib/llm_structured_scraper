@@ -160,7 +160,7 @@ def count_tokens(text: str) -> int:
     return len(encoding.encode(text))
 
 
-def chunk_text(text: str, max_tokens: int = 1500) -> List[str]:
+def chunk_text(text: str, max_tokens: int = 1000) -> List[str]:
     """
     Splits long text into smaller chunks based on token count.
 

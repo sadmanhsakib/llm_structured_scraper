@@ -15,30 +15,18 @@ SITE_URL = os.getenv("SITE_URL")
 SYSTEM_PROMPT = """
 You are a data extraction assistant.
 Respond ONLY with a valid JSON object. No explanation, no markdown fences.
-Extract only the information related to the VIDEO.
-For example, video title, video duration, video url.
+Extract only the key information from the given content.
 """
 
 class Schema(BaseModel):
     """Schema for a single extracted data."""
-
-    title: str
-    duration: str
     url: HttpUrl
 
 
 def main():
-    html_content = asyncio.run(
-        scraper.fetch_page(SITE_URL, wait_until="load")
-    )
-
-    if html_content:
-        md_path = scraper.export_as_markdown(html_content)
-    else:
-        raise Exception("❌ No HTML content found")
 
     parser.extract_data_from_markdown(
-        md_path=md_path, SYSTEM_PROMPT=SYSTEM_PROMPT, is_local=False
+        md_path="data/webpage.md", SYSTEM_PROMPT=SYSTEM_PROMPT, is_local=True
     )
 
 

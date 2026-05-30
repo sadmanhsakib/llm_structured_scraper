@@ -1,4 +1,4 @@
-# llm_structured_scraper
+# llm-structured-scraper
 
 A two-stage pipeline that renders JavaScript-heavy pages in a headless browser, converts them to token-efficient Markdown, and uses an LLM to extract **structured data** you define with [Pydantic](https://docs.pydantic.dev/)—enforced at the API boundary via [Instructor](https://python.useinstructor.com/).
 
@@ -16,25 +16,39 @@ Traditional scrapers depend on fixed CSS selectors and regex. When layouts chang
 
 ## Quick start
 
+**1. Clone**
+
 ```bash
 git clone https://github.com/sadmanhsakib/llm_structured_scraper.git
 cd llm_structured_scraper
-
-python -m venv .venv
-.venv\Scripts\activate          # Windows
-# source .venv/bin/activate     # macOS / Linux
-
-pip install -r requirements.txt
-playwright install chromium
-
-copy example.env .env           # Windows
-# cp example.env .env           # macOS / Linux
 ```
 
-Edit `.env` with `SITE_URL`, model names, and (for Groq) `API_KEY`. Customize the extraction schema and prompt in `scripts/main.py` (see [Customization](#customization)), then run from the **repository root**:
+**2. Install dependencies**
 
 ```bash
-python scripts/main.py
+uv sync
+```
+
+**3. Configure environment**
+
+```bash
+copy example.env .env    # Windows
+cp example.env .env      # macOS / Linux
+```
+
+| Variable | Description |
+|----------|-------------|
+| `API_KEY` | Groq API key (remote only) |
+| `SITE_URL` | Page to scrape |
+| `LOCAL_MODEL_NAME` | Ollama model (e.g. `llama3.2`) |
+| `REMOTE_MODEL_NAME` | Groq model (e.g. `llama-3.3-70b-versatile`) |
+
+**4. Run**
+
+Customize the extraction schema and prompt in `scripts/main.py` (see [Customization](#customization)), then run from the **repository root**:
+
+```bash
+uv run python main.py
 ```
 
 Output: `data/webpage.md` (intermediate) and `data/data.csv` (final).
@@ -106,8 +120,8 @@ parser.extract_data_from_markdown(
 llm-data-extractor/
 ├── scripts/
 │   ├── main.py       # Entry point: schema, prompt, orchestration
-│   ├── scraper.py    # Playwright fetch + HTML → Markdown
 │   ├── parser.py     # Chunking, LLM calls, CSV export
+│   ├── scraper.py    # Playwright fetch + HTML → Markdown
 │   └── test.py       # Optional utilities over data/data.csv
 ├── data/             # Generated at runtime (gitignored)
 │   ├── webpage.md
@@ -125,17 +139,6 @@ Run commands from the **repository root** so paths like `data/webpage.md` resolv
 - Playwright Chromium (`playwright install chromium`)
 - **Groq**: API key and model name in `.env`
 - **Ollama** (optional): [Ollama](https://ollama.com/) running locally with your model pulled
-
-## Configuration
-
-| Variable | Description |
-|----------|-------------|
-| `SITE_URL` | Page to scrape |
-| `LOCAL_MODEL_NAME` | Ollama model (e.g. `llama3.2`) |
-| `REMOTE_MODEL_NAME` | Groq model (e.g. `llama-3.3-70b-versatile`) |
-| `API_KEY` | Groq API key (remote only) |
-
-You can set both model variables and switch backends with `is_local` without editing `.env`.
 
 ## Usage
 
