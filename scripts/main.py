@@ -1,6 +1,7 @@
 import asyncio, os, time
 import scraper
 import parser
+import playwright_scraper
 from dotenv import load_dotenv
 from pydantic import BaseModel, HttpUrl
 
@@ -23,14 +24,19 @@ class Schema(BaseModel):
     url: HttpUrl
 
 
-def main():
-
+async def main():
+    # Use stealth Playwright scraper for maximum stealth and scaling
+    html_content = await playwright_scraper.fetch_page(
+        url=SITE_URL, wait_until="networkidle"
+    )
+    output_path = scraper.export_as_markdown(html_content)
+    
     parser.extract_data_from_markdown(
-        md_path="data/webpage.md", SYSTEM_PROMPT=SYSTEM_PROMPT, is_local=True
+        md_path=output_path, SYSTEM_PROMPT=SYSTEM_PROMPT, is_local=False
     )
 
 
 if __name__ == "__main__":
     start_time = time.time()
-    main()
+    asyncio.run(main())
     print(f"✅ Run Time is {time.time() - start_time:.2f} seconds")
