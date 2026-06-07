@@ -1,7 +1,6 @@
 import asyncio, os, time
 import scraper
 import parser
-import playwright_scraper
 from dotenv import load_dotenv
 from pydantic import BaseModel, HttpUrl
 
@@ -26,7 +25,7 @@ class Schema(BaseModel):
 
 async def main():
     # Use stealth Playwright scraper for maximum stealth and scaling
-    html_content = await playwright_scraper.fetch_page(
+    html_content = await scraper.fetch_page(
         url=SITE_URL, wait_until="networkidle"
     )
     output_path = scraper.export_as_markdown(html_content)

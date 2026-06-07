@@ -4,6 +4,7 @@ import os
 from typing import Optional, List, Dict
 from playwright.async_api import async_playwright, Browser, BrowserContext, Playwright
 from playwright_stealth import stealth_async
+from markdownify import markdownify as md
 
 
 class StealthPlaywrightScraper:

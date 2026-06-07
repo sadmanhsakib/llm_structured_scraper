@@ -12,5 +12,6 @@ dependencies = [
     "pandas>=3.0.3",
     "playwright>=1.60.0",
     "playwright-stealth>=2.0.3",
+    "pydantic>=2.13.4",
     "tiktoken>=0.13.0",
 ]

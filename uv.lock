@@ -449,6 +449,7 @@ dependencies = [
     { name = "pandas" },
     { name = "playwright" },
     { name = "playwright-stealth" },
+    { name = "pydantic" },
     { name = "tiktoken" },
 ]
 
@@ -461,6 +462,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=3.0.3" },
     { name = "playwright", specifier = ">=1.60.0" },
     { name = "playwright-stealth", specifier = ">=2.0.3" },
+    { name = "pydantic", specifier = ">=2.13.4" },
     { name = "tiktoken", specifier = ">=0.13.0" },
 ]
 
