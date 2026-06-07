@@ -108,9 +108,9 @@ SITE_URL (.env)
       ▼
 ┌───────────────────┐     data/webpage.md     ┌─────────────┐     data/data.csv
 │   scraper.py      │ ──────────────────────► │  parser.py  │ ─────────────────►
-│  StealthPlaywright │                         │  chunk →    │
-│  + Anti-Detection  │                         │  LLM → CSV  │
-│  + Markdown        │                         │             │
+│  StealthPlaywright│                         │  chunk →    │
+│  + Anti-Detection │                         │  LLM → CSV  │
+│  + Markdown       │                         │             │
 └───────────────────┘                         └─────────────┘
       ▲                                               ▲
       │                                               │
