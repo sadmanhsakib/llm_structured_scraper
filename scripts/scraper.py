@@ -2,7 +2,7 @@ import asyncio
 import random
 import os
 from typing import Optional, List, Dict
-from playwright.async_api import async_playwright, Browser, BrowserContext, Playwright
+from playwright.async_api import async_playwright, Browser, BrowserContext
 from playwright_stealth import Stealth
 from markdownify import markdownify as md
 

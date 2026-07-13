@@ -7,6 +7,7 @@ Traditional scrapers break when layouts change because they rely on fixed CSS se
 ## Features
 
 ### Stealth & Anti-Detection
+
 - **Advanced stealth browser** — Custom `StealthPlaywrightScraper` class with rotating user agents, screen resolutions, and timezones
 - **Anti-detection measures** — Removes webdriver flags, injects Chrome runtime objects, and randomizes browser fingerprints
 - **Playwright stealth plugin** — Integrated `playwright-stealth` for maximum stealth capabilities
@@ -15,6 +16,7 @@ Traditional scrapers break when layouts change because they rely on fixed CSS se
 - **Retry logic** — Automatic retries with exponential backoff for resilient scraping
 
 ### Data Processing
+
 - **HTML → Markdown conversion** — Strips scripts, styles, navigation, and other noise before conversion to reduce token usage
 - **Token-aware chunking** — Intelligently splits long pages at line boundaries using `tiktoken` to stay within model limits
 - **Schema-driven extraction** — Define Pydantic models in `scripts/main.py`; Instructor validates every LLM response
@@ -22,6 +24,7 @@ Traditional scrapers break when layouts change because they rely on fixed CSS se
 - **Flexible wait conditions** — Support for `load`, `domcontentloaded`, `networkidle`, and custom selectors
 
 ### LLM Integration
+
 - **Cloud or local LLMs** — Groq (remote) or Ollama (local) via a single `is_local` flag
 - **Structured output** — Guaranteed valid JSON conforming to your Pydantic schema
 - **Usage reporting** — Per-chunk prompt, completion, and total token counts for cost tracking
@@ -59,16 +62,16 @@ cp example.env .env      # macOS / Linux
 
 Edit `.env` with your settings:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `API_KEY` | Groq API key (remote only) | `gsk_...` |
-| `SITE_URL` | Page to scrape | `https://example.com` |
-| `LOCAL_MODEL_NAME` | Ollama model (local only) | `llama3.2` |
-| `REMOTE_MODEL_NAME` | Groq model (remote only) | `llama-3.3-70b-versatile` |
+| Variable            | Description                | Example                   |
+| ------------------- | -------------------------- | ------------------------- |
+| `API_KEY`           | Groq API key (remote only) | `gsk_...`                 |
+| `SITE_URL`          | Page to scrape             | `https://example.com`     |
+| `LOCAL_MODEL_NAME`  | Ollama model (local only)  | `llama3.2`                |
+| `REMOTE_MODEL_NAME` | Groq model (remote only)   | `llama-3.3-70b-versatile` |
 
 **4. Customize extraction schema**
 
-Edit `scripts/main.py` to define what data you want to extract:
+Edit `scripts/config.py` to define what data you want to extract:
 
 ```python
 class Schema(BaseModel):
@@ -183,7 +186,7 @@ async def main():
         wait_for_timeout=2000,     # Optional: additional wait in ms
     )
     output_path = scraper.export_as_markdown(html_content)
-    
+
     parser.extract_data_from_markdown(
         md_path=output_path,
         SYSTEM_PROMPT=SYSTEM_PROMPT,
@@ -275,6 +278,7 @@ uv run python scripts/main.py
 ```
 
 This will:
+
 1. Fetch the page specified in `SITE_URL`
 2. Convert HTML to markdown and save to `data/webpage.md`
 3. Extract structured data according to your schema
@@ -330,9 +334,9 @@ async def advanced_scrape():
         proxy=None,  # or {"server": "http://proxy:8080", "username": "user", "password": "pass"}
         use_stealth=True,
     )
-    
+
     await scraper.start()
-    
+
     try:
         html = await scraper.fetch_page(
             url="https://example.com",
@@ -360,7 +364,7 @@ from scripts.scraper import StealthPlaywrightScraper
 
 async def scrape_multiple():
     urls = ["https://example1.com", "https://example2.com", "https://example3.com"]
-    
+
     async with StealthPlaywrightScraper(
         headless=True,
         max_concurrent_browsers=3,
@@ -368,7 +372,7 @@ async def scrape_multiple():
     ) as scraper:
         tasks = [scraper.fetch_page(url) for url in urls]
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         for url, result in zip(urls, results):
             if isinstance(result, Exception):
                 print(f"Failed to scrape {url}: {result}")
@@ -380,22 +384,24 @@ asyncio.run(scrape_multiple())
 
 ## LLM backends
 
-| Feature | Groq (remote) | Ollama (local) |
-|---------|---------------|----------------|
-| **Speed** | Fast (cloud GPUs) | Hardware-dependent |
-| **Privacy** | Data sent to Groq | Stays on your machine |
-| **Cost** | API usage fees | Free (your compute) |
-| **Setup** | `API_KEY` + `REMOTE_MODEL_NAME` | Ollama + `LOCAL_MODEL_NAME` |
-| **Default chunk size** | 6,000 tokens | 1,500 tokens |
-| **Best for** | Production, large-scale | Development, sensitive data |
+| Feature                | Groq (remote)                   | Ollama (local)              |
+| ---------------------- | ------------------------------- | --------------------------- |
+| **Speed**              | Fast (cloud GPUs)               | Hardware-dependent          |
+| **Privacy**            | Data sent to Groq               | Stays on your machine       |
+| **Cost**               | API usage fees                  | Free (your compute)         |
+| **Setup**              | `API_KEY` + `REMOTE_MODEL_NAME` | Ollama + `LOCAL_MODEL_NAME` |
+| **Default chunk size** | 6,000 tokens                    | 1,500 tokens                |
+| **Best for**           | Production, large-scale         | Development, sensitive data |
 
 ### Recommended models
 
 **Groq:**
+
 - `llama-3.3-70b-versatile` — Best balance of speed and quality
 - `llama-3.1-8b-instant` — Fastest, good for simple extraction
 
 **Ollama:**
+
 - `llama3.2` — Good general-purpose model
 - `mistral` — Fast and efficient
 - `qwen2.5` — Excellent for structured output
@@ -415,13 +421,13 @@ The pipeline uses `tiktoken` with the `cl100k_base` encoding to estimate token c
 
 ### Chunk size recommendations
 
-| Scenario | Recommended max_tokens | Reason |
-|----------|----------------------|--------|
-| Local 7B models | 1,500 | Fits comfortably in 4K context |
-| Local 13B+ models | 3,000 | Can handle larger contexts |
-| Groq cloud models | 6,000 | Take advantage of larger contexts |
-| Dense content | Lower values | Ensures extraction doesn't miss items |
-| Sparse content | Higher values | Reduces API calls |
+| Scenario          | Recommended max_tokens | Reason                                |
+| ----------------- | ---------------------- | ------------------------------------- |
+| Local 7B models   | 1,500                  | Fits comfortably in 4K context        |
+| Local 13B+ models | 3,000                  | Can handle larger contexts            |
+| Groq cloud models | 6,000                  | Take advantage of larger contexts     |
+| Dense content     | Lower values           | Ensures extraction doesn't miss items |
+| Sparse content    | Higher values          | Reduces API calls                     |
 
 ### Monitoring token usage
 
@@ -476,36 +482,36 @@ Each request uses randomized characteristics to avoid fingerprint tracking:
 
 ## Tech stack
 
-| Library | Version | Role |
-|---------|---------|------|
-| [Playwright](https://playwright.dev/python/) | 1.60+ | Headless browser automation |
-| [playwright-stealth](https://github.com/AtuboDad/playwright_stealth) | 2.0+ | Anti-detection and bot evasion |
-| [markdownify](https://github.com/matthewwithanm/python-markdownify) | 1.2+ | HTML to Markdown conversion |
-| [Instructor](https://python.useinstructor.com/) | 1.15+ | Structured LLM output validation |
-| [Pydantic](https://docs.pydantic.dev/) | 2.13+ | Schema definition and validation |
-| [Groq](https://groq.com/) | 1.2+ | Remote LLM inference (cloud) |
-| [OpenAI](https://openai.com/) | — | Ollama client compatibility |
-| [tiktoken](https://github.com/openai/tiktoken) | 0.13+ | Token counting and estimation |
-| [pandas](https://pandas.pydata.org/) | 3.0+ | CSV export and data manipulation |
-| [python-dotenv](https://github.com/theskumar/python-dotenv) | 0.9+ | Environment variable management |
+| Library                                                              | Version | Role                             |
+| -------------------------------------------------------------------- | ------- | -------------------------------- |
+| [Playwright](https://playwright.dev/python/)                         | 1.60+   | Headless browser automation      |
+| [playwright-stealth](https://github.com/AtuboDad/playwright_stealth) | 2.0+    | Anti-detection and bot evasion   |
+| [markdownify](https://github.com/matthewwithanm/python-markdownify)  | 1.2+    | HTML to Markdown conversion      |
+| [Instructor](https://python.useinstructor.com/)                      | 1.15+   | Structured LLM output validation |
+| [Pydantic](https://docs.pydantic.dev/)                               | 2.13+   | Schema definition and validation |
+| [Groq](https://groq.com/)                                            | 1.2+    | Remote LLM inference (cloud)     |
+| [OpenAI](https://openai.com/)                                        | —       | Ollama client compatibility      |
+| [tiktoken](https://github.com/openai/tiktoken)                       | 0.13+   | Token counting and estimation    |
+| [pandas](https://pandas.pydata.org/)                                 | 3.0+    | CSV export and data manipulation |
+| [python-dotenv](https://github.com/theskumar/python-dotenv)          | 0.9+    | Environment variable management  |
 
 All dependencies are specified in `pyproject.toml` and locked in `uv.lock` for reproducible builds.
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| **`Input file not found: data/webpage.md`** | Run the scraper first, or ensure you're running from the repository root. |
-| **`Model name not configured`** | Set `LOCAL_MODEL_NAME` (+ Ollama running) or `REMOTE_MODEL_NAME` + `API_KEY` in `.env`. |
-| **`playwright._impl._errors.Error: Executable doesn't exist`** | Install Chromium: `uv run playwright install chromium` |
-| **Empty CSV or missing rows** | 1) Check `data/webpage.md` has content<br>2) Adjust `SYSTEM_PROMPT` to be more specific<br>3) Increase chunk size<br>4) Verify target page actually contains the data |
-| **`Connection refused` (Ollama)** | 1) Start Ollama: `ollama serve`<br>2) Pull model: `ollama pull llama3.2`<br>3) Verify it's running on port 11434 |
-| **`TimeoutError` on `page.goto()`** | 1) Use `wait_until="load"` instead of `"networkidle"`<br>2) Increase `timeout` parameter<br>3) Use `wait_for_selector` for dynamic content |
-| **Invalid JSON or validation errors** | 1) Make `SYSTEM_PROMPT` more strict<br>2) Add examples to the prompt<br>3) Set `max_retries=3` in `generate_output()` for production<br>4) Try a different model |
-| **Bot detection / 403 errors** | 1) Ensure `use_stealth=True`<br>2) Add proxy configuration<br>3) Increase delays between requests<br>4) Try `headless=False` to debug |
-| **High memory usage** | 1) Reduce `max_concurrent_browsers`<br>2) Decrease chunk size<br>3) Process fewer pages at once |
-| **Slow extraction** | 1) Use Groq instead of local Ollama<br>2) Increase chunk size to reduce API calls<br>3) Use faster model (e.g., `llama-3.1-8b-instant`) |
-| **Import errors** | Ensure you're running from repo root: `uv run python scripts/main.py` (not `cd scripts && python main.py`) |
+| Issue                                                          | Solution                                                                                                                                                              |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`Input file not found: data/webpage.md`**                    | Run the scraper first, or ensure you're running from the repository root.                                                                                             |
+| **`Model name not configured`**                                | Set `LOCAL_MODEL_NAME` (+ Ollama running) or `REMOTE_MODEL_NAME` + `API_KEY` in `.env`.                                                                               |
+| **`playwright._impl._errors.Error: Executable doesn't exist`** | Install Chromium: `uv run playwright install chromium`                                                                                                                |
+| **Empty CSV or missing rows**                                  | 1) Check `data/webpage.md` has content<br>2) Adjust `SYSTEM_PROMPT` to be more specific<br>3) Increase chunk size<br>4) Verify target page actually contains the data |
+| **`Connection refused` (Ollama)**                              | 1) Start Ollama: `ollama serve`<br>2) Pull model: `ollama pull llama3.2`<br>3) Verify it's running on port 11434                                                      |
+| **`TimeoutError` on `page.goto()`**                            | 1) Use `wait_until="load"` instead of `"networkidle"`<br>2) Increase `timeout` parameter<br>3) Use `wait_for_selector` for dynamic content                            |
+| **Invalid JSON or validation errors**                          | 1) Make `SYSTEM_PROMPT` more strict<br>2) Add examples to the prompt<br>3) Set `max_retries=3` in `generate_output()` for production<br>4) Try a different model      |
+| **Bot detection / 403 errors**                                 | 1) Ensure `use_stealth=True`<br>2) Add proxy configuration<br>3) Increase delays between requests<br>4) Try `headless=False` to debug                                 |
+| **High memory usage**                                          | 1) Reduce `max_concurrent_browsers`<br>2) Decrease chunk size<br>3) Process fewer pages at once                                                                       |
+| **Slow extraction**                                            | 1) Use Groq instead of local Ollama<br>2) Increase chunk size to reduce API calls<br>3) Use faster model (e.g., `llama-3.1-8b-instant`)                               |
+| **Import errors**                                              | Ensure you're running from repo root: `uv run python scripts/main.py` (not `cd scripts && python main.py`)                                                            |
 
 ## Best practices
 
@@ -550,14 +556,14 @@ All dependencies are specified in `pyproject.toml` and locked in `uv.lock` for r
 
 Approximate performance on a typical product listing page (50KB HTML, 5KB markdown):
 
-| Configuration | Scrape time | Extract time | Total | Cost (per page) |
-|---------------|-------------|--------------|-------|-----------------|
-| Groq (llama-3.3-70b) | 5s | 2s | 7s | ~$0.0001 |
-| Groq (llama-3.1-8b) | 5s | 1s | 6s | ~$0.00005 |
-| Ollama (llama3.2, M1 Mac) | 5s | 15s | 20s | Free |
-| Ollama (llama3.2, RTX 4090) | 5s | 8s | 13s | Free |
+| Configuration               | Scrape time | Extract time | Total | Cost (per page) |
+| --------------------------- | ----------- | ------------ | ----- | --------------- |
+| Groq (llama-3.3-70b)        | 5s          | 2s           | 7s    | ~$0.0001        |
+| Groq (llama-3.1-8b)         | 5s          | 1s           | 6s    | ~$0.00005       |
+| Ollama (llama3.2, M1 Mac)   | 5s          | 15s          | 20s   | Free            |
+| Ollama (llama3.2, RTX 4090) | 5s          | 8s           | 13s   | Free            |
 
-*Times and costs are estimates and will vary based on page complexity and infrastructure.*
+_Times and costs are estimates and will vary based on page complexity and infrastructure._
 
 ## Contributing
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import List
 from pydantic import BaseModel, HttpUrl
 
 
@@ -14,3 +15,7 @@ class Schema(BaseModel):
 
     url: HttpUrl
 
+class SchemaCollection(BaseModel):
+    """Container for multiple extracted datas, used to enforce structured LLM output."""
+
+    collections: List[Schema]

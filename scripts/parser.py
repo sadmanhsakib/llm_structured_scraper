@@ -5,7 +5,8 @@ This module utilizes the Instructor library to enforce structured output (JSON)
 via Pydantic models. It supports both local (Ollama) and remote (Groq) LLM backends.
 """
 
-import os, time
+import json
+import os
 from typing import List, Optional, Tuple
 
 import instructor
@@ -13,9 +14,7 @@ import tiktoken
 import pandas as pd
 
 from dotenv import load_dotenv
-from groq import Groq
 from openai import OpenAI
-from pydantic import BaseModel
 
 import config
 
@@ -26,13 +25,6 @@ API_KEY = os.getenv("API_KEY")
 LOCAL_MODEL_NAME = os.getenv("LOCAL_MODEL_NAME")
 REMOTE_MODEL_NAME = os.getenv("REMOTE_MODEL_NAME")
 
-
-class SchemaCollection(BaseModel):
-    """Container for multiple extracted datas, used to enforce structured LLM output."""
-
-    collections: List[config.Schema]
-
-
 def main() -> None:
     extract_data_from_markdown(md_path="data/webpage.md")
 
@@ -42,7 +34,7 @@ def extract_data_from_markdown(md_path: str, is_local: bool = False) -> None:
     Extracts data from scraped markdown and exports the results to a CSV file.
     """
     if not os.path.exists(md_path):
-        print(f"❌ Input file not found: {md_path}")
+        print(f"[ERROR] Input file not found: {md_path}")
         return
 
     with open(md_path, "r", encoding="utf-8") as file:
@@ -53,7 +45,9 @@ def extract_data_from_markdown(md_path: str, is_local: bool = False) -> None:
     if is_local:
         chunks = chunk_text(markdown_content)
     else:
-        chunks = chunk_text(markdown_content, max_tokens=6000)
+        # Reasoning models consume tokens internally before producing output.
+        # Keep chunks smaller so prompt_tokens + max_tokens stays under 8000 (TPM cap).
+        chunks = chunk_text(markdown_content, max_tokens=2000)
 
     print(f"Total chunks to process: {len(chunks)}")
 
@@ -74,7 +68,7 @@ def extract_data_from_markdown(md_path: str, is_local: bool = False) -> None:
             all_urls.extend(results.collections)
 
     # Consolidate and export all extracted results to a persistent file.
-    final_collection = SchemaCollection(collections=all_urls)
+    final_collection = config.SchemaCollection(collections=all_urls)
     export_data(final_collection)
 
 
@@ -91,8 +85,16 @@ def initialize_client(is_local: bool) -> Tuple[instructor.Instructor, Optional[s
         client = instructor.from_openai(openai_client, mode=instructor.Mode.JSON)
         model_name = LOCAL_MODEL_NAME
     else:
-        # Use Groq for faster remote execution
-        client = instructor.from_groq(Groq(api_key=API_KEY), mode=instructor.Mode.JSON)
+        # Use Groq's OpenAI-compatible endpoint via from_openai with Mode.MD_JSON.
+        # Mode.JSON / Mode.TOOLS both trigger Groq's server-side validation which
+        # rejects this model's output with json_validate_failed / tool_use_failed.
+        # Mode.MD_JSON sends NO response_format header — instructor instead parses
+        # JSON from the model's plain-text response entirely client-side.
+        groq_openai_client = OpenAI(
+            base_url="https://api.groq.com/openai/v1",
+            api_key=API_KEY,
+        )
+        client = instructor.from_openai(groq_openai_client, mode=instructor.Mode.MD_JSON)
         model_name = REMOTE_MODEL_NAME
 
     return client, model_name
@@ -100,7 +102,7 @@ def initialize_client(is_local: bool) -> Tuple[instructor.Instructor, Optional[s
 
 def generate_output(
     client: instructor.Instructor, SYSTEM_PROMPT: str, prompt: str, model_name: str
-) -> Optional[SchemaCollection]:
+) -> Optional[config.SchemaCollection]:
     """
     Sends a prompt to the LLM and returns a structured Pydantic object.
 
@@ -108,7 +110,7 @@ def generate_output(
     the output is always a valid LinkCollection.
     """
     if not model_name:
-        print("⚠️ Model name not configured.")
+        print("[WARN] Model name not configured.")
         return None
     if not SYSTEM_PROMPT:
         SYSTEM_PROMPT = """
@@ -116,20 +118,35 @@ def generate_output(
             Respond ONLY with a valid JSON object. No explanation, no markdown fences.
             """
 
+    # Always append the exact expected JSON schema so the model knows
+    # precisely what structure to output, preventing json_validate_failed errors.
+    schema_hint = config.SchemaCollection.model_json_schema()
+    schema_str = json.dumps(schema_hint, indent=2)
+    system_with_schema = (
+        SYSTEM_PROMPT.rstrip()
+        + f"\n\nYou MUST respond with a JSON object that strictly follows this schema:\n{schema_str}"
+        + "\n\nDo NOT include any text outside the JSON object."
+    )
+
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_with_schema},
         {"role": "user", "content": prompt},
     ]
 
     # Temperature is set to 0.0 to ensure maximum consistency and
     # minimize 'hallucinations' in the extracted data.
+    # Compute max_tokens dynamically: TPM cap is 8000 for this model tier.
+    # We reserve the remainder after prompt tokens, capped at 4500.
+    prompt_token_count = count_tokens(system_with_schema) + count_tokens(prompt)
+    max_tokens = min(4500, max(1500, 8000 - prompt_token_count - 100))
+
     try:
         response, completion = client.chat.completions.create_with_completion(
             model=model_name,
             messages=messages,
             temperature=0.0,
-            response_model=SchemaCollection,
-            max_tokens=8000,
+            response_model=config.SchemaCollection,
+            max_tokens=max_tokens,
             max_retries=0,  # retries should be 3 for production
         )
 
@@ -138,11 +155,11 @@ def generate_output(
         )
         return response
     except Exception as e:
-        print(f"❌ Error during generation: {e}")
+        print(f"[ERROR] Error during generation: {e}")
         return None
 
 
-def export_data(results: SchemaCollection) -> None:
+def export_data(results: config.SchemaCollection) -> None:
     """
     Saves the extracted URLs to a text file.
 
@@ -153,7 +170,7 @@ def export_data(results: SchemaCollection) -> None:
     df = pd.DataFrame([vars(obj) for obj in results.collections])
     df.to_csv(output_path, index=False)
 
-    print(f"✅ URLs extracted successfully to {output_path}")
+    print(f"[OK] URLs extracted successfully to {output_path}")
 
 
 def count_tokens(text: str) -> int:
@@ -207,6 +224,4 @@ def chunk_text(text: str, max_tokens: int = 1000) -> List[str]:
 
 
 if __name__ == "__main__":
-    start_time = time.time()
     main()
-    print(f"✅ Run Time is {time.time() - start_time:.2f} seconds")
