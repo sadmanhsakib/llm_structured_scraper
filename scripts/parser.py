@@ -6,14 +6,19 @@ via Pydantic models. It supports both local (Ollama) and remote (Groq) LLM backe
 """
 
 import os, time
-import instructor, tiktoken
+from typing import List, Optional, Tuple
+
+import instructor
+import tiktoken
 import pandas as pd
+
+from dotenv import load_dotenv
 from groq import Groq
 from openai import OpenAI
 from pydantic import BaseModel
-from typing import List, Optional, Tuple
-from dotenv import load_dotenv
-import main
+
+import config
+
 
 load_dotenv()
 
@@ -21,16 +26,18 @@ API_KEY = os.getenv("API_KEY")
 LOCAL_MODEL_NAME = os.getenv("LOCAL_MODEL_NAME")
 REMOTE_MODEL_NAME = os.getenv("REMOTE_MODEL_NAME")
 
+
 class SchemaCollection(BaseModel):
     """Container for multiple extracted datas, used to enforce structured LLM output."""
 
-    collections: List[main.Schema]
+    collections: List[config.Schema]
+
 
 def main() -> None:
-    extract_data_from_markdown(is_local=False)
+    extract_data_from_markdown(md_path="data/webpage.md")
 
 
-def extract_data_from_markdown(md_path: str, SYSTEM_PROMPT: str = None, is_local: bool = False) -> None:
+def extract_data_from_markdown(md_path: str, is_local: bool = False) -> None:
     """
     Extracts data from scraped markdown and exports the results to a CSV file.
     """
@@ -59,7 +66,7 @@ def extract_data_from_markdown(md_path: str, SYSTEM_PROMPT: str = None, is_local
         )
         results = generate_output(
             client=client,
-            SYSTEM_PROMPT=SYSTEM_PROMPT,
+            SYSTEM_PROMPT=config.SYSTEM_PROMPT,
             prompt=chunk,
             model_name=model_name,
         )
@@ -122,7 +129,7 @@ def generate_output(
             messages=messages,
             temperature=0.0,
             response_model=SchemaCollection,
-            max_tokens=8192,
+            max_tokens=8000,
             max_retries=0,  # retries should be 3 for production
         )
 

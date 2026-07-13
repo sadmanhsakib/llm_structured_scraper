@@ -1,26 +1,16 @@
-import asyncio, os, time
-import scraper
-import parser
+import asyncio
+import os
+import time
+
 from dotenv import load_dotenv
-from pydantic import BaseModel, HttpUrl
+
+import scraper
+from parser import extract_data_from_markdown
 
 
 load_dotenv()
 
 SITE_URL = os.getenv("SITE_URL")
-
-
-# Strict instructions to ensure the LLM focuses purely on data extraction
-# and does not include conversational filler which could break JSON parsing.
-SYSTEM_PROMPT = """
-You are a data extraction assistant.
-Respond ONLY with a valid JSON object. No explanation, no markdown fences.
-Extract only the key information from the given content.
-"""
-
-class Schema(BaseModel):
-    """Schema for a single extracted data."""
-    url: HttpUrl
 
 
 async def main():
@@ -30,8 +20,8 @@ async def main():
     )
     output_path = scraper.export_as_markdown(html_content)
     
-    parser.extract_data_from_markdown(
-        md_path=output_path, SYSTEM_PROMPT=SYSTEM_PROMPT, is_local=False
+    extract_data_from_markdown(
+        md_path=output_path, is_local=False
     )
 
 

@@ -3,7 +3,7 @@ import random
 import os
 from typing import Optional, List, Dict
 from playwright.async_api import async_playwright, Browser, BrowserContext, Playwright
-from playwright_stealth import stealth_async
+from playwright_stealth import Stealth
 from markdownify import markdownify as md
 
 
@@ -60,7 +60,7 @@ class StealthPlaywrightScraper:
         self.max_concurrent_browsers = max_concurrent_browsers
         self.proxy = proxy
         self.use_stealth = use_stealth
-        self.playwright: Optional[Playwright] = None
+        self._stealth = Stealth() if use_stealth else None
         self.browser: Optional[Browser] = None
         self.context_pool: List[BrowserContext] = []
         self.semaphore = asyncio.Semaphore(max_concurrent_browsers)
@@ -221,13 +221,13 @@ class StealthPlaywrightScraper:
                     page = await context.new_page()
                     
                     # Apply stealth to page
-                    if self.use_stealth and stealth_async:
-                        await stealth_async(page)
-                    
+                    if self._stealth:
+                        await self._stealth.apply_stealth_async(page)
+     
                     print(f"⏳ Navigating to: {url} (attempt {attempt + 1}/{retry_count})")
                     
                     # Navigate to URL
-                    response = await page.goto(
+                    _ = await page.goto(
                         url,
                         wait_until=wait_until,
                         timeout=timeout,

@@ -1,0 +1,16 @@
+from __future__ import annotations
+
+from pydantic import BaseModel, HttpUrl
+
+
+SYSTEM_PROMPT = """
+You are a data extraction assistant.
+Respond ONLY with a valid JSON object. No explanation, no markdown fences.
+Extract only the key information from the given content.
+"""
+
+class Schema(BaseModel):
+    """Schema for a single extracted data."""
+
+    url: HttpUrl
+
